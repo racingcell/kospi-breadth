@@ -34,8 +34,8 @@ prices = pd.DataFrame(price_data).sort_index()
 ma50 = prices.rolling(MA_WINDOW).mean()
 
 count_above = (prices > ma50).sum(axis=1)
-sma21 = percent_above.rolling(21).mean()
 percent_above = count_above / prices.count(axis=1) * 100
+sma21 = percent_above.rolling(21).mean()
 
 # =========================
 # SAVE PLOTS
