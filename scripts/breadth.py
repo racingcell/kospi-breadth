@@ -34,7 +34,7 @@ prices = pd.DataFrame(price_data).sort_index()
 ma50 = prices.rolling(MA_WINDOW).mean()
 
 count_above = (prices > ma50).sum(axis=1)
-sma21 = count_above.rolling(21).mean()
+sma21 = percent_above.rolling(21).mean()
 percent_above = count_above / prices.count(axis=1) * 100
 
 # =========================
@@ -46,7 +46,7 @@ fig = go.Figure()
 fig.add_trace(
     go.Scatter(
         x=count_above.index,
-        y=count_above.values,
+        y=percent_above.values,
         mode="lines",
         name="Breadth (Above 50D MA)"
     )
@@ -65,7 +65,7 @@ fig.add_trace(
 fig.update_layout(
     title=f"{MARKET} – Number of Stocks Above 50-Day MA",
     xaxis_title="Date",
-    yaxis_title="Count",
+    yaxis_title="Percent of stocks above 50D MA (%)",
     template="plotly_white",
     hovermode="x unified"
 )
