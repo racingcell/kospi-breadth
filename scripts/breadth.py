@@ -10,6 +10,8 @@ START_DATE = "2024-01-01"
 MA_WINDOWS = [20, 60, 120, 200]
 SMOOTH_WINDOW = 21
 OUTPUT_DIR = "docs"
+DISPLAY_START = "2024-01-01"
+
 
 # ======================
 # Load ticker list
@@ -33,6 +35,9 @@ for ticker in tickers:
 prices = pd.DataFrame(price_data)
 prices.index = pd.to_datetime(prices.index)
 prices = prices.sort_index()
+
+df = df[df.index >= DISPLAY_START]
+
 
 # ======================
 # Breadth: % above moving averages (+ 21D SMA)
@@ -62,10 +67,12 @@ for window in MA_WINDOWS:
 
     fig.update_layout(
         title=f"KOSPI % of Stocks Above {window}-Day SMA",
+        height=800,
+        autosize = True,
         yaxis_title="Percent (%)",
         template="plotly_white"
     )
-
+    fig.update_xaxes(range=["2024-01-01", df.index.max()])
     fig.write_html(f"{OUTPUT_DIR}/breadth_{window}.html")
 
 # ======================
@@ -126,7 +133,7 @@ fig_nhnl.update_layout(
     bargap=0,
     template="plotly_white"
 )
-
+fig.update_xaxes(range=["2024-01-01", df.index.max()])
 fig_nhnl.write_html(f"{OUTPUT_DIR}/breadth_52w_highs_lows.html")
 
 # ======================
@@ -164,5 +171,5 @@ fig_ad.update_layout(
     yaxis_title="Cumulative Net Advances",
     template="plotly_white"
 )
-
+fig.update_xaxes(range=["2024-01-01", df.index.max()])
 fig_ad.write_html(f"{OUTPUT_DIR}/breadth_ad_line.html")
