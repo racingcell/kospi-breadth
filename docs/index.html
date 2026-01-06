@@ -7,35 +7,30 @@
 </head>
 
 <body>
-  <h1>KOSPI Market Breadth</h1>
+  <h1>KOSPI Market Breadth Dashboard</h1>
 
-  <h2>% of Stocks Above Moving Averages</h2>
-
-  <h3>Above 20-Day SMA</h3>
-  <iframe src="breadth_20.html" ...></iframe>
-
-  <h3>Above 60-Day SMA</h3>
-  <iframe src="breadth_60.html" ...></iframe>
-
-  <h3>Above 120-Day SMA</h3>
-  <iframe src="breadth_120.html" ...></iframe>
-
-  <h3>Above 200-Day SMA</h3>
-  <iframe src="breadth_200.html" ...></iframe>
-
-
-  <hr>
-
-  <h2>Market Internals</h2>
-
-  <h3>52-Week Highs Minus Lows</h3>
-  <iframe src="breadth_52w_highs_lows.html" width="100%" height="500" style="border:none;"></iframe>
-
-  <h3>Advance–Decline Line</h3>
-  <iframe src="breadth_ad_line.html" width="100%" height="500" style="border:none;"></iframe>
-
-  <p style="margin-top:40px; font-size:0.9em; color:gray;">
-    Data source: KRX via FinanceDataReader · Updated automatically
+  <p>
+    Percent of KOSPI stocks trading above selected moving averages.
+    Data shown from 2024 onward.
   </p>
+
+  <h2>Percent Above 20-Day SMA</h2>
+  <iframe src="breadth_20.html" width="100%" height="900" style="border:none;"></iframe>
+
+  <h2>Percent Above 60-Day SMA</h2>
+  <iframe src="breadth_60.html" width="100%" height="900" style="border:none;"></iframe>
+
+  <h2>Percent Above 120-Day SMA</h2>
+  <iframe src="breadth_120.html" width="100%" height="900" style="border:none;"></iframe>
+
+  <h2>Percent Above 200-Day SMA</h2>
+  <iframe src="breadth_200.html" width="100%" height="900" style="border:none;"></iframe>
+
+  <h2>52-Week Highs Minus Lows</h2>
+  <iframe src="high_low_52w.html" width="100%" height="700" style="border:none;"></iframe>
+
+  <h2>Advance–Decline Line</h2>
+  <iframe src="ad_line.html" width="100%" height="700" style="border:none;"></iframe>
+
 </body>
 </html>
