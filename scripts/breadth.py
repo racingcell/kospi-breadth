@@ -73,7 +73,7 @@ for window in MA_WINDOWS:
         template="plotly_white"
     )
     fig.update_xaxes(range=["2024-01-01", None])
-    fig.write_html(f"{OUTPUT_DIR}/breadth_{window}.html")
+    fig.write_html(f"{OUTPUT_DIR}/breadth_{window}.html",include_plotlyjs="cdn",config={"responsive": True)
 
 # ======================
 # 52-week highs minus lows (bar chart, NO SMA)
@@ -134,7 +134,7 @@ fig_nhnl.update_layout(
     template="plotly_white"
 )
 fig.update_xaxes(range=["2024-01-01", None])
-fig_nhnl.write_html(f"{OUTPUT_DIR}/breadth_52w_highs_lows.html")
+fig_nhnl.write_html(f"{OUTPUT_DIR}/breadth_52w_highs_lows.html"  ,include_plotlyjs="cdn",config={"responsive": True)
 
 # ======================
 # Advance–Decline Line (+ 21D SMA)
@@ -172,4 +172,4 @@ fig_ad.update_layout(
     template="plotly_white"
 )
 fig.update_xaxes(range=["2024-01-01", None])
-fig_ad.write_html(f"{OUTPUT_DIR}/breadth_ad_line.html")
+fig_ad.write_html(f"{OUTPUT_DIR}/breadth_ad_line.html" ,    include_plotlyjs="cdn",    config={"responsive": True)
