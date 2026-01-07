@@ -1,19 +1,3 @@
-**KOSPI Market Breadth Summary**
+The KOSPI market breadth shows that 25.18% of stocks are above their 20-day moving average, 36.62% are above the 60-day, 39.66% above the 120-day, and 48.90% above the 200-day moving average. This indicates a weak short-term trend with only a quarter of stocks showing strength relative to their recent performance. In terms of long-term alignment, nearly half of the stocks are above their 200-day moving average, suggesting some stability in the longer-term trend.
 
-As of today, the KOSPI exhibits the following breadth indicators:
-
-- **Percent of Stocks Above Moving Averages**:
-  - **20-day MA**: 25.18%
-  - **60-day MA**: 36.62%
-  - **120-day MA**: 39.66%
-  - **200-day MA**: 48.90%
-
-**Trend Alignment**:
-- The short-term trend (20-day MA) shows a significant number of stocks (74.82%) trading below this average, indicating potential weakness in the immediate market sentiment. 
-- In contrast, the long-term trend (200-day MA) shows a relatively healthier 48.90% of stocks above this average, suggesting some underlying strength despite short-term challenges.
-
-**Market Participation Quality**:
-- Overall market participation remains low, with only about 25% of stocks above the 20-day moving average, indicating a lack of broad market strength. The higher percentages above the 120-day and 200-day moving averages suggest that while some stocks may be performing well over the longer term, the immediate market momentum is weak.
-
-**Conclusion**:
-The KOSPI currently reflects a mixed market sentiment, with short-term weakness overshadowing longer-term stability. Investors may want to exercise caution as the majority of stocks are struggling to maintain upward momentum in the near term.
+However, market participation quality appears low, with a significant number of stocks struggling to maintain upward momentum. According to Mark Minervini's CANSLIM methodology, the current conditions do not favor breakouts, as the percentage of stocks above key moving averages is insufficient to indicate a strong market environment for new investments. Overall, the market sentiment leans towards caution, indicating it may not be an optimal time for breakouts.

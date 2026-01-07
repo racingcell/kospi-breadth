@@ -132,12 +132,15 @@ if OPENAI_KEY:
         latest = breadth_df.iloc[-1]
 
         prompt = f"""
+Write the summary in plain text only. Do not use Markdown, asterisks, or bullet symbols like ** or -.
+
 You are a market strategist.
 
 Write a concise daily summary of KOSPI market breadth using:
 - Percent of stocks above 20, 60, 120 and 200 day moving averages
 - Short-term vs long-term trend alignment
 - Market participation quality
+- Mark Minervini / CANSLIM style market analysis investigating if now is a good or bad time for breakouts
 
 Latest breadth data:
 {latest.to_dict()}
