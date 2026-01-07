@@ -1,175 +1,138 @@
 import FinanceDataReader as fdr
 import pandas as pd
 import plotly.graph_objects as go
+from tqdm import tqdm
 
-# ======================
-# Parameters
-# ======================
+# =========================
+# Configuration
+# =========================
 MARKET = "KOSPI"
-START_DATE = "2024-01-01"
-MA_WINDOWS = [20, 60, 120, 200]
-SMOOTH_WINDOW = 21
-OUTPUT_DIR = "docs"
+START_DATE = "2010-01-01"   # long history for correct calculations
 DISPLAY_START = "2024-01-01"
+MA_PERIODS = [20, 60, 120, 200]
 
+OUTPUT_DIR = "docs"
 
-# ======================
-# Load ticker list
-# ======================
+# =========================
+# Helper function
+# =========================
+def save_fig(fig, path):
+    fig.update_xaxes(range=[DISPLAY_START, None])
+    fig.write_html(
+        path,
+        include_plotlyjs="cdn",
+        config={"responsive": True}
+    )
+
+# =========================
+# Load tickers
+# =========================
 listing = fdr.StockListing(MARKET)
 tickers = listing["Code"].tolist()
 
-# ======================
+# =========================
 # Download price data
-# ======================
-price_data = {}
+# =========================
+prices = []
 
-for ticker in tickers:
+for code in tqdm(tickers, desc="Downloading prices"):
     try:
-        df = fdr.DataReader(ticker, START_DATE)
-        if not df.empty:
-            price_data[ticker] = df["Close"]
+        df = fdr.DataReader(code, START_DATE)
+        prices.append(df["Close"].rename(code))
     except Exception:
         continue
 
-prices = pd.DataFrame(price_data)
-prices.index = pd.to_datetime(prices.index)
-prices = prices.sort_index()
+prices = pd.concat(prices, axis=1).sort_index()
 
-df = df[df.index >= DISPLAY_START]
+# =========================
+# Breadth: % above SMAs
+# =========================
+for period in MA_PERIODS:
+    sma = prices.rolling(period).mean()
+    above = prices > sma
+    percent_above = above.sum(axis=1) / prices.count(axis=1) * 100
 
-
-# ======================
-# Breadth: % above moving averages (+ 21D SMA)
-# ======================
-for window in MA_WINDOWS:
-    sma = prices.rolling(window).mean()
-    percent_above = (prices > sma).sum(axis=1) / prices.count(axis=1) * 100
-    percent_sma21 = percent_above.rolling(SMOOTH_WINDOW).mean()
+    sma21 = percent_above.rolling(21).mean()
 
     fig = go.Figure()
-
     fig.add_trace(go.Scatter(
         x=percent_above.index,
         y=percent_above,
-        mode="lines",
-        name="% Above MA",
-        line=dict(width=1)
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=percent_sma21.index,
-        y=percent_sma21,
-        mode="lines",
-        name="21-Day SMA",
+        name=f"% Above {period}-Day SMA",
         line=dict(width=2)
+    ))
+    fig.add_trace(go.Scatter(
+        x=sma21.index,
+        y=sma21,
+        name="21-Day SMA",
+        line=dict(width=2, dash="dash")
     ))
 
     fig.update_layout(
-        title=f"KOSPI % of Stocks Above {window}-Day SMA",
-        height=800,
-        autosize = True,
-        yaxis_title="Percent (%)",
-        template="plotly_white"
+        title=f"KOSPI % of Stocks Above {period}-Day SMA",
+        yaxis_title="Percent",
+        height=850,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02)
     )
-    fig.update_xaxes(range=["2024-01-01", None])
-    fig.write_html(f"{OUTPUT_DIR}/breadth_{window}.html",include_plotlyjs="cdn",config={"responsive": True)
 
-# ======================
-# 52-week highs minus lows (bar chart, NO SMA)
-# ======================
-lookback = 252
+    save_fig(fig, f"{OUTPUT_DIR}/breadth_{period}.html")
 
-rolling_high = prices.rolling(lookback).max()
-rolling_low = prices.rolling(lookback).min()
+# =========================
+# 52-Week Highs minus Lows
+# =========================
+rolling_high = prices.rolling(252).max()
+rolling_low = prices.rolling(252).min()
 
-new_highs = prices.eq(rolling_high)
-new_lows = prices.eq(rolling_low)
+new_highs = (prices == rolling_high).sum(axis=1)
+new_lows = (prices == rolling_low).sum(axis=1)
+hl_diff = new_highs - new_lows
 
-nh_nl = new_highs.sum(axis=1) - new_lows.sum(axis=1)
-
-bar_colors = nh_nl.apply(
-    lambda x: "green" if x > 0 else ("red" if x < 0 else "gray")
-)
-
-fig_nhnl = go.Figure()
-fig_nhnl.add_trace(go.Bar(
-    x=nh_nl.index,
-    y=nh_nl,
-    marker_color=bar_colors,
+fig_hl = go.Figure()
+fig_hl.add_trace(go.Bar(
+    x=hl_diff.index,
+    y=hl_diff,
     name="52W Highs − Lows"
 ))
 
-# ---- regime shading: 3 bars in a row
-sign = nh_nl.apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
-streak = sign.groupby((sign != sign.shift()).cumsum()).cumcount() + 1
-
-current_start = None
-current_sign = None
-
-for date, s, length in zip(nh_nl.index, sign, streak):
-    if s == 0:
-        current_start = None
-        continue
-
-    if length == 3:
-        current_start = date
-        current_sign = s
-
-    if length < 3 and current_start is not None:
-        fig_nhnl.add_vrect(
-            x0=current_start,
-            x1=date,
-            fillcolor="green" if current_sign > 0 else "red",
-            opacity=0.15,
-            line_width=0,
-            layer="below"
-        )
-        current_start = None
-
-fig_nhnl.update_layout(
+fig_hl.update_layout(
     title="KOSPI 52-Week Highs Minus Lows",
-    yaxis_title="Number of Stocks",
-    bargap=0,
-    template="plotly_white"
+    yaxis_title="Net Highs",
+    height=600
 )
-fig.update_xaxes(range=["2024-01-01", None])
-fig_nhnl.write_html(f"{OUTPUT_DIR}/breadth_52w_highs_lows.html"  ,include_plotlyjs="cdn",config={"responsive": True)
 
-# ======================
-# Advance–Decline Line (+ 21D SMA)
-# ======================
-daily_diff = prices.diff()
+save_fig(fig_hl, f"{OUTPUT_DIR}/high_low_52w.html")
 
-advances = (daily_diff > 0).sum(axis=1)
-declines = (daily_diff < 0).sum(axis=1)
+# =========================
+# Advance–Decline Line
+# =========================
+daily_returns = prices.diff()
+advances = (daily_returns > 0).sum(axis=1)
+declines = (daily_returns < 0).sum(axis=1)
 
 net_advances = advances - declines
 ad_line = net_advances.cumsum()
-ad_sma21 = ad_line.rolling(SMOOTH_WINDOW).mean()
+ad_sma21 = ad_line.rolling(21).mean()
 
 fig_ad = go.Figure()
-
 fig_ad.add_trace(go.Scatter(
     x=ad_line.index,
     y=ad_line,
-    mode="lines",
-    name="AD Line",
-    line=dict(width=1)
+    name="Advance–Decline Line",
+    line=dict(width=2)
 ))
-
 fig_ad.add_trace(go.Scatter(
     x=ad_sma21.index,
     y=ad_sma21,
-    mode="lines",
     name="21-Day SMA",
-    line=dict(width=2)
+    line=dict(width=2, dash="dash")
 ))
 
 fig_ad.update_layout(
     title="KOSPI Advance–Decline Line",
-    yaxis_title="Cumulative Net Advances",
-    template="plotly_white"
+    height=700,
+    legend=dict(orientation="h", yanchor="bottom", y=1.02)
 )
-fig.update_xaxes(range=["2024-01-01", None])
-fig_ad.write_html(f"{OUTPUT_DIR}/breadth_ad_line.html" ,    include_plotlyjs="cdn",    config={"responsive": True)
+
+save_fig(fig_ad, f"{OUTPUT_DIR}/ad_line.html")
+
+print("✅ All charts generated successfully.")
