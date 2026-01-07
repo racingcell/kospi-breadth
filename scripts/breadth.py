@@ -1,138 +1,191 @@
-import FinanceDataReader as fdr
+import os
 import pandas as pd
+import numpy as np
+import FinanceDataReader as fdr
 import plotly.graph_objects as go
 from tqdm import tqdm
+from datetime import datetime
 
 # =========================
-# Configuration
+# CONFIG
 # =========================
 MARKET = "KOSPI"
-START_DATE = "2010-01-01"   # long history for correct calculations
+START_DATE = "2023-01-01"   # calculations need history
 DISPLAY_START = "2024-01-01"
-MA_PERIODS = [20, 60, 120, 200]
-
 OUTPUT_DIR = "docs"
+DATA_DIR = "docs/data"
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # =========================
-# Helper function
+# HELPERS
 # =========================
-def save_fig(fig, path):
-    fig.update_xaxes(range=[DISPLAY_START, None])
+def save_fig(fig, filename):
+    fig.update_layout(
+        template="plotly_white",
+        margin=dict(l=30, r=20, t=40, b=30),
+        xaxis=dict(range=[DISPLAY_START, None]),
+    )
     fig.write_html(
-        path,
+        f"{OUTPUT_DIR}/{filename}",
         include_plotlyjs="cdn",
         config={"responsive": True}
     )
 
 # =========================
-# Load tickers
+# LOAD TICKERS
 # =========================
-listing = fdr.StockListing(MARKET)
-tickers = listing["Code"].tolist()
+tickers = fdr.StockListing(MARKET)["Code"].tolist()
 
-# =========================
-# Download price data
-# =========================
-prices = []
-
-for code in tqdm(tickers, desc="Downloading prices"):
+prices = {}
+for t in tqdm(tickers, desc="Downloading prices"):
     try:
-        df = fdr.DataReader(code, START_DATE)
-        prices.append(df["Close"].rename(code))
-    except Exception:
-        continue
+        df = fdr.DataReader(t, START_DATE)
+        prices[t] = df["Close"]
+    except:
+        pass
 
-prices = pd.concat(prices, axis=1).sort_index()
+prices = pd.DataFrame(prices)
+prices.index = pd.to_datetime(prices.index)
 
 # =========================
-# Breadth: % above SMAs
+# BREADTH (SMA)
 # =========================
-for period in MA_PERIODS:
-    sma = prices.rolling(period).mean()
-    above = prices > sma
-    percent_above = above.sum(axis=1) / prices.count(axis=1) * 100
+sma_periods = [20, 60, 120, 200]
+breadth = {}
 
-    sma21 = percent_above.rolling(21).mean()
+for p in sma_periods:
+    sma = prices.rolling(p).mean()
+    pct = (prices > sma).sum(axis=1) / prices.count(axis=1) * 100
+    breadth[f"above_{p}"] = pct
 
+breadth_df = pd.DataFrame(breadth)
+breadth_df = breadth_df[breadth_df.index >= DISPLAY_START]
+breadth_df.to_csv(f"{DATA_DIR}/breadth_sma.csv")
+
+breadth_21dma = breadth_df.rolling(21).mean()
+breadth_21dma.to_csv(f"{DATA_DIR}/breadth_sma_21dma.csv")
+
+for col in breadth_df.columns:
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=percent_above.index,
-        y=percent_above,
-        name=f"% Above {period}-Day SMA",
-        line=dict(width=2)
-    ))
-    fig.add_trace(go.Scatter(
-        x=sma21.index,
-        y=sma21,
-        name="21-Day SMA",
-        line=dict(width=2, dash="dash")
-    ))
-
-    fig.update_layout(
-        title=f"KOSPI % of Stocks Above {period}-Day SMA",
-        yaxis_title="Percent",
-        height=850,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02)
-    )
-
-    save_fig(fig, f"{OUTPUT_DIR}/breadth_{period}.html")
+    fig.add_trace(go.Scatter(x=breadth_df.index, y=breadth_df[col],
+                             name=col.replace("_", " ").upper()))
+    fig.add_trace(go.Scatter(x=breadth_21dma.index, y=breadth_21dma[col],
+                             name="21D SMA", line=dict(dash="dash")))
+    fig.update_layout(title=f"KOSPI % Stocks Above {col.split('_')[1]}-Day SMA")
+    save_fig(fig, f"breadth_{col.split('_')[1]}.html")
 
 # =========================
-# 52-Week Highs minus Lows
+# 52-WEEK HIGHS - LOWS
 # =========================
-rolling_high = prices.rolling(252).max()
-rolling_low = prices.rolling(252).min()
+high_52w = prices == prices.rolling(252).max()
+low_52w = prices == prices.rolling(252).min()
 
-new_highs = (prices == rolling_high).sum(axis=1)
-new_lows = (prices == rolling_low).sum(axis=1)
-hl_diff = new_highs - new_lows
+hl_df = pd.DataFrame({
+    "new_highs": high_52w.sum(axis=1),
+    "new_lows": low_52w.sum(axis=1)
+})
+hl_df["net"] = hl_df["new_highs"] - hl_df["new_lows"]
+hl_df = hl_df[hl_df.index >= DISPLAY_START]
+hl_df.to_csv(f"{DATA_DIR}/high_low_52w.csv")
 
-fig_hl = go.Figure()
-fig_hl.add_trace(go.Bar(
-    x=hl_diff.index,
-    y=hl_diff,
-    name="52W Highs − Lows"
-))
-
-fig_hl.update_layout(
-    title="KOSPI 52-Week Highs Minus Lows",
-    yaxis_title="Net Highs",
-    height=600
-)
-
-save_fig(fig_hl, f"{OUTPUT_DIR}/high_low_52w.html")
+fig = go.Figure()
+fig.add_bar(x=hl_df.index, y=hl_df["net"], name="52W Highs - Lows")
+fig.update_layout(title="KOSPI 52-Week Highs minus Lows")
+save_fig(fig, "high_low_52w.html")
 
 # =========================
-# Advance–Decline Line
+# ADVANCE DECLINE LINE
 # =========================
-daily_returns = prices.diff()
-advances = (daily_returns > 0).sum(axis=1)
-declines = (daily_returns < 0).sum(axis=1)
+returns = prices.diff()
+adv = (returns > 0).sum(axis=1)
+dec = (returns < 0).sum(axis=1)
+net_adv = adv - dec
+ad_line = net_adv.cumsum()
 
-net_advances = advances - declines
-ad_line = net_advances.cumsum()
-ad_sma21 = ad_line.rolling(21).mean()
+ad_df = pd.DataFrame({
+    "advances": adv,
+    "declines": dec,
+    "net_advances": net_adv,
+    "ad_line": ad_line
+})
+ad_df = ad_df[ad_df.index >= DISPLAY_START]
+ad_df.to_csv(f"{DATA_DIR}/advance_decline.csv")
 
-fig_ad = go.Figure()
-fig_ad.add_trace(go.Scatter(
-    x=ad_line.index,
-    y=ad_line,
-    name="Advance–Decline Line",
-    line=dict(width=2)
-))
-fig_ad.add_trace(go.Scatter(
-    x=ad_sma21.index,
-    y=ad_sma21,
-    name="21-Day SMA",
-    line=dict(width=2, dash="dash")
-))
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=ad_df.index, y=ad_df["ad_line"], name="AD Line"))
+fig.update_layout(title="KOSPI Advance–Decline Line")
+save_fig(fig, "advance_decline.html")
 
-fig_ad.update_layout(
-    title="KOSPI Advance–Decline Line",
-    height=700,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02)
-)
+# =========================
+# AI SUMMARY (OPTIONAL)
+# =========================
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 
-save_fig(fig_ad, f"{OUTPUT_DIR}/ad_line.html")
+if OPENAI_KEY:
+    try:
+        from openai import OpenAI
 
-print("✅ All charts generated successfully.")
+        client = OpenAI(api_key=OPENAI_KEY)
+
+        latest = breadth_df.iloc[-1]
+
+        prompt = f"""
+You are a market strategist.
+
+Write a concise daily summary of KOSPI market breadth using:
+- Percent of stocks above 20, 60, 120 and 200 day moving averages
+- Short-term vs long-term trend alignment
+- Market participation quality
+
+Latest breadth data:
+{latest.to_dict()}
+"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+        )
+
+        summary = response.choices[0].message.content.strip()
+
+        # Save plain text
+        with open("docs/ai_summary.txt", "w") as f:
+            f.write(summary)
+
+        # Save HTML for GitHub Pages
+        with open("docs/ai_summary.html", "w") as f:
+            f.write(f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 12px;
+    }}
+    .box {{
+      background: white;
+      border-left: 4px solid #444;
+      padding: 14px;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>📊 Daily AI Market Breadth Summary</h2>
+    <p>{summary.replace('\n', '<br>')}</p>
+  </div>
+</body>
+</html>""")
+
+        print("AI summary generated successfully.")
+
+    except Exception as e:
+        print("AI summary failed:", e)
