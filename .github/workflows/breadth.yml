@@ -23,6 +23,8 @@ jobs:
           pip install finance-datareader pandas tqdm plotly openai
 
       - name: Run breadth script
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python scripts/breadth.py
 
       - name: Commit updated plots
