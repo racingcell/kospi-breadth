@@ -118,6 +118,8 @@ fig.add_trace(go.Scatter(x=ad_df.index, y=ad_df["ad_line"], name="AD Line"))
 fig.update_layout(title="KOSPI Advance–Decline Line")
 save_fig(fig, "advance_decline.html")
 
+
+
 # =========================
 # AI SUMMARY (ALL INDICATORS)
 # =========================
@@ -234,4 +236,3 @@ Write the summary first in English and afterwards in Korean.
 
     except Exception as e:
         print("AI summary failed:", e)
-
