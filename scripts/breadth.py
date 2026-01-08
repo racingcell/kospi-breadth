@@ -202,7 +202,7 @@ Write the summary first in English and afterwards in Korean.
 
         # --- Save HTML ---
         with open("docs/ai_summary.html", "w") as f:
-            f.write(f"""<!DOCTYPE html>
+    f.write(f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -225,7 +225,7 @@ Write the summary first in English and afterwards in Korean.
 <body>
   <div class="box">
     <h2>Daily AI Market Breadth Summary</h2>
-    <p>{summary.replace('\n', '<br>')}</p>
+    <p>{summary.replace("\n", "<br>")}</p>
   </div>
 </body>
 </html>""")
