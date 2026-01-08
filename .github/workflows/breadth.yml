@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install finance-datareader pandas tqdm plotly
+          pip install finance-datareader pandas tqdm plotly openai
 
       - name: Run breadth script
         run: python scripts/breadth.py
